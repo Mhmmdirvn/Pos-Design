@@ -27,5 +27,5 @@ type CreateItemRequest struct {
 }
 
 type CreateTransactionRequest struct {
-	Items []CreateItemRequest
+	Items []CreateItemRequest `json:"items"`
 }

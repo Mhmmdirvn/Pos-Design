@@ -31,7 +31,10 @@ func (handler Handler) CreateTransaction(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	json.NewEncoder(w).Encode(transaction)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"Message": "Create Success",
+		"Data" : transaction,
+	})
 }
 
 func (handler Handler) GetAllTransactions(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +67,6 @@ func (handler Handler) GetAllTransactions(w http.ResponseWriter, r *http.Request
 
 func (handler Handler) GetTransactionById(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -79,11 +81,16 @@ func (handler Handler) GetTransactionById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	response := map[string]interface{}{
-		"Message": "Success",
-		"Data": transaction,
+	_, err = json.Marshal(transaction)
+	if err != nil {
+		http.Error(w, "Data Cannot Be Converted To JSON", http.StatusBadRequest)
+		return
 	}
 
-	json.NewEncoder(w).Encode(response)
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"Message": "Data Found",
+		"Data": transaction,
+	})
 }
 
