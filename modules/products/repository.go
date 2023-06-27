@@ -10,7 +10,7 @@ type Repository struct {
 
 func (repo Repository) GetAllProducts() ([]Product, error) {
 	var products []Product
-	result := repo.DB.Find(&products)
+	result := repo.DB.Unscoped().Find(&products)
 	return products, result.Error
 }
 
@@ -25,8 +25,14 @@ func (repo Repository) CreateProduct(product *Product) error {
 	return result.Error
 }
 
-func (repo Repository) UpdateProductById(id int, product *Product) error {
-	result := repo.DB.Where(id).Updates(&product)
+func (repo Repository) EditProductById(id int, product *Product) error {
+	result := repo.DB.Select("*").Where(id).Updates(&product)
+
+	return result.Error
+}
+
+func (repo Repository) Updates(product *Product) error {
+	result := repo.DB.Updates(&product)
 
 	return result.Error
 }
@@ -34,4 +40,10 @@ func (repo Repository) UpdateProductById(id int, product *Product) error {
 func (repo Repository) DeleteProductById(id int) error {
 	result := repo.DB.Delete(&Product{}, id)
 	return result.Error
-}	
+}
+
+func (repo Repository) Save(product *Product) error {
+	result := repo.DB.Save(&product)
+
+	return result.Error
+} 

@@ -3,9 +3,7 @@ package transactions
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
-	"github.com/gorilla/mux"
 )
 
 type Handler struct {
@@ -14,27 +12,50 @@ type Handler struct {
 
 func (handler Handler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
 	var request CreateTransactionRequest
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		messageErr, _ := json.Marshal(map[string]string{"message": "Failed to decode json"})
+		messageErr, _ := json.Marshal(map[string]string{"message": err.Error()})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(messageErr)
 		return
 	}
 
-	transaction, err := handler.Usecase.CreateTransaction(&request)
+	transaction, err := handler.Usecase.CreateTransaction(r.Context(), &request)
 	if err != nil {
-		http.Error(w, "Data Can't Be Added", http.StatusBadRequest)
-		return
+		if err == ErrProductIdNotFound {
+			json.NewEncoder(w).Encode(map[string]string{
+				"Message": err.Error(),
+			})
+			return
+		} else if err == ErrProductHasBeenRemoved {
+			json.NewEncoder(w).Encode(map[string]string{
+				"Message": err.Error(),
+			})
+			return
+		} else if err == ErrStockNotEnough {
+			json.NewEncoder(w).Encode(map[string]string{
+				"Message": err.Error(),
+			})
+		}
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"Message": "Create Success",
-		"Data" : transaction,
-	})
+	
+
+	// json.NewEncoder(w).Encode(map[string]interface{}{
+	// 	
+	// 	"Data" : transaction,
+	// })
+
+	response := &ResponseCreateProduct{
+		Message: "Create Success",
+		Data: *transaction,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func (handler Handler) GetAllTransactions(w http.ResponseWriter, r *http.Request) {
@@ -54,28 +75,28 @@ func (handler Handler) GetAllTransactions(w http.ResponseWriter, r *http.Request
 			"Id": data.Id,
 			"TimeStamp": data.TimeStamp,
 			"Total": data.Total,
+			"admin_id": data.AdminID,
 		}
 
 		response = append(response, t)
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"Message": "Success",
-		"Data" : response,
-	})
+	// json.NewEncoder(w).Encode(map[string]interface{}{
+	// 	"Message": "Success",
+	// 	"Data" : response,
+	// })
+	responseMessage := &ResponseWithMap{
+		Message: "Success",
+		Data: response,
+	}
+
+	json.NewEncoder(w).Encode(responseMessage)
 }
 
 func (handler Handler) GetTransactionById(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
 
-	transaction, err := handler.Usecase.GetTransactionById(id)
+	transaction, err := handler.Usecase.GetTransactionById(r.Context())
 	if err != nil {
 		http.Error(w, "Transaction Not Found", http.StatusNotFound)
 		return
@@ -88,9 +109,17 @@ func (handler Handler) GetTransactionById(w http.ResponseWriter, r *http.Request
 	}
 
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"Message": "Data Found",
-		"Data": transaction,
-	})
+	// json.NewEncoder(w).Encode(map[string]interface{}{
+	// 	"Message": "Data Found",
+	// 	"Data": transaction,
+	// })
+
+
+	response := &ResponseGetProductByID{
+		Message: "Data Found",
+		Data: *transaction,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 

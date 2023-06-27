@@ -8,13 +8,13 @@ type Repository struct {
 
 func (repo Repository) GetAllTransactions() ([]Transaction, error) {
 	var transactions []Transaction
-	result := repo.DB.Find(&transactions)
+	result := repo.DB.Select("id", "time_stamp", "total", "admin_id").Preload("Admin").Find(&transactions)
 	return transactions, result.Error
 }
 
 func (repo Repository) GetTransactionById(id int) (*Transaction, error) {
 	var transaction *Transaction
-	result := repo.DB.Preload("Items.Product").First(&transaction, id)
+	result := repo.DB.Preload("Admin").Preload("Items.Product").First(&transaction, id)
 	return transaction, result.Error
 }
 
